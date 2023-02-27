@@ -130,17 +130,34 @@ int main()
 
     has_execute_member exec;
     f.then(exec,
-        [&continuation_has_run]( async_future<bool> predecessor)
+        [&continuation_has_run](async_future<bool> predecessor)
         {
-
             assert(false == predecessor.get());
             continuation_has_run = true;
-
         });
 
     assert(!continuation_has_run);
     p.set_value(false);
     assert(continuation_has_run);
   }
+
+  {
+    // async_future from promise, simple then
+
+    std::experimental::promise<bool> p;
+    async_future<bool> f = p.get_async_future();
+    bool continuation_has_run = false;
+
+    f.then([&continuation_has_run](async_future<bool> predecessor)
+        {
+            assert(false == predecessor.get());
+            continuation_has_run = true;
+        });
+
+    assert(!continuation_has_run);
+    p.set_value(false);
+    assert(continuation_has_run);
+  }
+
   std::cout << "OK" << std::endl;
 }
