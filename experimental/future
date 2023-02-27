@@ -341,6 +341,19 @@ class async_future
     >
       then(const Executor& exec, F&& func);
 
+    template<class F>
+    execution::detail::executor_future_or_t<
+      execution::detail::simple_executor,
+      typename std::result_of<
+        typename std::decay<F>::type(async_future)
+      >::type,
+
+      // XXX WAR issue with clang
+      //async_future
+      async_future_clang_workaround
+    >
+      then(F&& func);
+
   private:
     template<class Executor, class Function>
     void set_continuation(const Executor& exec, Function&& func)
@@ -856,6 +869,23 @@ async_future<T>::then(const Executor& exec, F&& func)
   return detail::then_impl(*this, exec, std::forward<F>(func));
 }
 
+template<class T>
+template<class F>
+execution::detail::executor_future_or_t<
+      execution::detail::simple_executor,
+      typename std::result_of<
+        typename std::decay<F>::type(async_future<T>)
+      >::type,
+
+      // XXX WAR issue with clang
+      //async_future
+      async_future<T>::template async_future_clang_workaround
+    >
+async_future<T>::then(F&& func)
+{
+  execution::detail::simple_executor exec;
+  return detail::then_impl(*this, exec, std::forward<F>(func));
+}
 
 } // end detail
 } // end v1
