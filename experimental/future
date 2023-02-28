@@ -654,6 +654,11 @@ class promise
       return static_cast<bool>(ptr_to_state_);
     }
 
+    detail::async_future<T> future()
+    {
+        return get_async_future();
+    }
+
     detail::async_future<T> get_async_future()
     {
       if(!valid())
@@ -678,7 +683,7 @@ class promise
     }
 
   public:
-    future<T> get_future()
+    experimental::future<T> get_future()
     {
       return get_async_future();
     }
