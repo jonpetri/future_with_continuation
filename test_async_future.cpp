@@ -145,11 +145,11 @@ int main()
     // async_future from promise, simple then
 
     std::experimental::promise<bool> p;
-    async_future<bool> f = p.get_async_future();
     bool continuation_has_run = false;
-
-    f.then([&continuation_has_run](async_future<bool> predecessor)
+    async_future<bool> f = p.get_async_future();
+    f.then([&continuation_has_run](auto predecessor)
         {
+            assert(!predecessor.hasTimeout());
             assert(false == predecessor.get());
             continuation_has_run = true;
         });
@@ -157,6 +157,19 @@ int main()
     assert(!continuation_has_run);
     p.set_value(false);
     assert(continuation_has_run);
+  }
+
+  {
+    // promise timeout
+
+    std::experimental::promise<bool> p;
+
+    p.get_async_future().then([](auto predecessor)
+        {
+            assert(predecessor.hasTimeout());
+        });
+
+    p.timeout();
   }
 
   std::cout << "OK" << std::endl;
