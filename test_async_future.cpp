@@ -155,8 +155,14 @@ int main()
         });
 
     assert(!continuation_has_run);
+    assert(!f.valid());
+    assert(p.valid());
+
     p.set_value(false);
     assert(continuation_has_run);
+
+    assert(!f.valid());
+    assert(!p.valid());
   }
 
   {
