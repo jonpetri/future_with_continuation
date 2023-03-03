@@ -698,6 +698,11 @@ class promise
       ptr_to_state_.swap(other.ptr_to_state_);
     }
 
+    bool ongoing() const noexcept
+    {
+      return static_cast<bool>(ptr_to_state_);
+    }
+
     bool valid() const noexcept
     {
       return static_cast<bool>(ptr_to_state_);
@@ -769,6 +774,36 @@ class promise
                !std::is_void<Deduced>::value
              )
             >
+    void done(const Deduced& value)
+    {
+      set_value_impl(value);
+    }
+
+    template<class Deduced = T,
+             __FUTURE_REQUIRES(
+               !std::is_void<Deduced>::value
+             )
+            >
+    void done(Deduced&& value)
+    {
+      set_value_impl(std::move(value));
+    }
+
+    template<class Deduced = T,
+             __FUTURE_REQUIRES(
+               std::is_void<Deduced>::value
+             )
+            >
+    void done()
+    {
+      set_value_impl();
+    }
+
+    template<class Deduced = T,
+             __FUTURE_REQUIRES(
+               !std::is_void<Deduced>::value
+             )
+            >
     void set_value(const Deduced& value)
     {
       set_value_impl(value);
@@ -798,7 +833,7 @@ class promise
     {
       if(!valid())
       {
-        throw std::future_error(std::future_errc::no_state);
+        return;
       }
 
       if(ptr_to_state_->is_ready())
@@ -819,7 +854,7 @@ class promise
     {
       if(!valid())
       {
-        throw std::future_error(std::future_errc::no_state);
+        return;
       }
 
       if(ptr_to_state_->is_ready())
@@ -840,7 +875,7 @@ class promise
     {
       if(!valid())
       {
-        throw std::future_error(std::future_errc::no_state);
+        return;
       }
 
       if(ptr_to_state_->is_ready())
