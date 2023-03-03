@@ -132,6 +132,7 @@ int main()
     f.then(exec,
         [&continuation_has_run](async_future<bool> predecessor)
         {
+            assert(predecessor.succeed());
             assert(false == predecessor.get());
             continuation_has_run = true;
         });
@@ -149,6 +150,7 @@ int main()
     async_future<bool> f = p.get_async_future();
     f.then([&continuation_has_run](auto predecessor)
         {
+            assert(predecessor.succeed());
             assert(!predecessor.hasTimeout());
             assert(false == predecessor.get());
             continuation_has_run = true;
@@ -172,10 +174,25 @@ int main()
 
     p.get_async_future().then([](auto predecessor)
         {
+            assert(!predecessor.succeed());
             assert(predecessor.hasTimeout());
         });
 
     p.timeout();
+  }
+
+  {
+    // promise failure
+
+    std::experimental::promise<bool> p;
+
+    p.get_async_future().then([](auto predecessor)
+        {
+            assert(!predecessor.succeed());
+            assert("failure" == predecessor.errorMessage());
+        });
+
+    p.failed("failure");
   }
 
   std::cout << "OK" << std::endl;

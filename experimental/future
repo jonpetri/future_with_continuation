@@ -136,9 +136,30 @@ class asynchronous_state : public std::enable_shared_from_this<asynchronous_stat
       unsafe_invoke_continuation_if();
     }
 
+    void failed(const std::string& error_msg)
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+
+      maybe_result_ = expected<T>(std::make_exception_ptr(std::runtime_error("failure")));
+      error_msg_ = error_msg;
+
+      lock.unlock();
+      unsafe_invoke_continuation_if();
+    }
+
+    bool succeed()
+    {
+        return (0 == error_msg_.size()) and (!has_timeout_);
+    }
+
     bool hasTimeout() const
     {
       return has_timeout_;
+    }
+
+    const std::string& errorMessage()
+    {
+        return error_msg_;
     }
 
     void wait() const
@@ -216,6 +237,7 @@ class asynchronous_state : public std::enable_shared_from_this<asynchronous_stat
 
     std::experimental::optional<expected<T>> maybe_result_;
     bool has_timeout_ = false;
+    std::string error_msg_;
 
     // asynchronous_state may or may not have a continuation stored in it
     hacky_unique_function<void(async_future<T>)> continuation_;
@@ -315,6 +337,16 @@ class async_future
       return ptr_to_state_->is_ready();
     }
 
+    bool succeed()
+    {
+      if(!valid())
+      {
+        throw std::future_error(std::future_errc::no_state);
+      }
+
+      return ptr_to_state_->succeed();
+    }
+
     bool hasTimeout()
     {
       if(!valid())
@@ -330,6 +362,15 @@ class async_future
       }
 
       return hasTimeout;
+    }
+
+    const std::string& errorMessage()
+    {
+      if(!valid())
+      {
+        throw std::future_error(std::future_errc::no_state);
+      }
+      return ptr_to_state_->errorMessage();
     }
 
     T get()
@@ -766,6 +807,27 @@ class promise
       }
 
       ptr_to_state_->set_exception(p);
+
+      // if the future is retrived, then we can release the state
+      if(future_retrieved())
+      {
+        release();
+      }
+    }
+
+    void failed(const std::string& error_msg)
+    {
+      if(!valid())
+      {
+        throw std::future_error(std::future_errc::no_state);
+      }
+
+      if(ptr_to_state_->is_ready())
+      {
+        throw std::future_error(std::future_errc::promise_already_satisfied);
+      }
+
+      ptr_to_state_->failed(error_msg);
 
       // if the future is retrived, then we can release the state
       if(future_retrieved())
