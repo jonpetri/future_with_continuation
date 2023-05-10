@@ -689,6 +689,8 @@ class promise
       promise(std::move(other)).swap(*this);
 
       assert(valid());
+
+      return *this;
     }
 
     promise& operator=(const promise&) = delete;
